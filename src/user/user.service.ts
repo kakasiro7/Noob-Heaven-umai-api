@@ -1,26 +1,58 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Prisma, User } from '@prisma/client';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class UserService {
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  constructor(private readonly prisma: PrismaService) {}
+
+  async createUser(createUserDto: CreateUserDto) {
+    const { userName, userId, userPassword } = createUserDto;
+    const partialUser: Prisma.UserCreateInput = {
+      userName,
+      userId,
+      userPassword,
+    };
+
+    const createResult: User | undefined = await this.prisma.user.create({
+      data: { ...partialUser },
+    });
+    return createResult;
   }
 
-  findAll() {
-    return `This action returns all user`;
+  async findAllUser(): Promise<User[]> {
+    const findAllResult: Partial<User[]> = await this.prisma.user.findMany();
+    return findAllResult;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOneUser(userId: string) {
+    const findOneUserResult: Partial<User> = await this.prisma.user.findFirst({
+      where: { userId: userId },
+    });
+    return findOneUserResult;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async updateUser(updateUserDto: UpdateUserDto) {
+    const updateResult = await this.prisma.user.update({
+      where: { id: updateUserDto.id },
+      data: [{ userName: updateUserDto.userName }],
+    });
+
+    if (updateResult !== null) {
+      return true;
+    }
+    return false;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async removeUser(id: number) {
+    try {
+      await this.prisma.user.delete({ where: { id: id } });
+      return true;
+    } catch (error) {
+      Logger.error(`[User Delete Failed] Err Msg : ${error}`);
+      return false;
+    }
   }
 }
